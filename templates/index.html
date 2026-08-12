@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFe Downloader - Baixar XML via SEFAZ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">📎</div>
+            <h1>NFe Downloader</h1>
+            <p>Insira as chaves de acesso para baixar os XMLs via NFeDistribuicaoDFe</p>
+        </header>
+
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('textarea')" id="tab-btn-text">
+                    ✍️ Colar Chaves
+                </button>
+                <button class="tab" onclick="switchTab('file')" id="tab-btn-file">
+                    📁 Upload Arquivo
+                </button>
+            </div>
+
+            <form id="form-baixar" action="/baixar" method="POST" enctype="multipart/form-data">
+
+                <div id="tab-textarea" class="tab-content active">
+                    <label for="chaves">Chaves de acesso (44 digitos, uma por linha):</label>
+                    <textarea id="chaves" name="chaves"
+                              placeholder="35240112345678000195550010000012341234567890&#10;35240112345678000195550010000012351234567891&#10;..."
+                              rows="12"></textarea>
+                    <div class="counter">
+                        <span id="contador">0</span> chave(s) valida(s)
+                    </div>
+                </div>
+
+                <div id="tab-file" class="tab-content">
+                    <label for="arquivo">Selecione um arquivo .txt com as chaves:</label>
+                    <div class="file-drop" id="file-drop">
+                        <input type="file" id="arquivo" name="arquivo"
+                               accept=".txt,.csv"
+                               onchange="updateFileName(this)">
+                        <div class="file-drop-text" id="file-drop-text">
+                            📄 Clique ou arraste um arquivo .txt aqui
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>⚠️ Limites da SEFAZ:</strong>
+                    <ul>
+                        <li>Maximo de <strong>20 consultas por hora</strong> por chave de acesso</li>
+                        <li>Pausa de <strong>3 segundos</strong> entre cada consulta</li>
+                        <li>Documentos disponiveis por <strong>90 dias</strong></li>
+                        <li>Maximo de <strong>100 chaves</strong> por requisicao</li>
+                    </ul>
+                </div>
+
+                <button type="submit" id="btn-baixar" class="btn-primary">
+                    ⬇️ Baixar XMLs
+                </button>
+            </form>
+        </div>
+
+        <div id="loading" class="loading-overlay" style="display:none;">
+            <div class="spinner"></div>
+            <p>Consultando a SEFAZ...</p>
+            <small>Isso pode levar alguns minutos dependendo da quantidade de chaves.<br>Cada chave leva ~4 segundos (consulta + pausa).</small>
+        </div>
+
+        <footer>
+            <p>NFeDistribuicaoDFe · NT 2014.002 · <a href="/health">Status do Sistema</a></p>
+        </footer>
+    </div>
+
+    <script>
+        const textarea = document.getElementById('chaves');
+        const contador = document.getElementById('contador');
+
+        textarea.addEventListener('input', () => {
+            const count = textarea.value.split('\n')
+                .filter(l => {
+                    l = l.trim();
+                    return l && !l.startsWith('#') && l.length === 44 && /^\d+$/.test(l);
+                }).length;
+            contador.textContent = count;
+            contador.style.color = count > 0 ? '#16a34a' : '#64748b';
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tab === 'textarea') {
+                document.getElementById('tab-btn-text').classList.add('active');
+                document.getElementById('tab-textarea').classList.add('active');
+                document.getElementById('arquivo').value = '';
+                document.getElementById('file-drop-text').textContent = '📄 Clique ou arraste um arquivo .txt aqui';
+            } else {
+                document.getElementById('tab-btn-file').classList.add('active');
+                document.getElementById('tab-file').classList.add('active');
+            }
+        }
+
+        function updateFileName(input) {
+            const div = document.getElementById('file-drop-text');
+            if (input.files.length > 0) {
+                div.textContent = `📄 ${input.files[0].name}`;
+                div.style.color = '#16a34a';
+            } else {
+                div.textContent = '📄 Clique ou arraste um arquivo .txt aqui';
+                div.style.color = '#64748b';
+            }
+        }
+
+        document.getElementById('form-baixar').addEventListener('submit', (e) => {
+            const ta = document.getElementById('chaves').value.trim();
+            const file = document.getElementById('arquivo').files.length;
+            if (!ta && !file) {
+                e.preventDefault();
+                alert('Insira pelo menos uma chave de acesso ou selecione um arquivo.');
+                return;
+            }
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('btn-baixar').disabled = true;
+            document.getElementById('btn-baixar').textContent = '⏳ Processando...';
+        });
+    </script>
+</body>
+</html>
